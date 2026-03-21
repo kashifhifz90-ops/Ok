@@ -116,7 +116,6 @@
         const auth = getAuth(app);
         const provider = new GoogleAuthProvider();
         
-        // --- EMAILJS CONFIG (REPLACE THESE) ---
         const EMAILJS_PUBLIC_KEY = "bydPPU0R7fdupNliP"; 
         const EMAILJS_SERVICE_ID = "service_35ocgj5";
         const EMAILJS_TEMPLATE_ID = "template_nzvv5lm";
@@ -126,11 +125,29 @@
         let currentOTP = null;
         let activeItem = null;
 
+        // --- NEW INITIALIZATION LOGIC ---
+        const init = () => {
+            const isLogged = localStorage.getItem('rx_logged');
+            const authPage = document.getElementById('auth-page');
+            const mainNav = document.getElementById('main-nav');
+
+            if (isLogged === 'true') {
+                // PHYSICALLY DELETE the auth section
+                if (authPage) authPage.remove(); 
+                
+                mainNav.classList.remove('hidden');
+                showPage('home-page');
+                loadData();
+            } else {
+                showPage('auth-page');
+            }
+        };
+
         window.showPage = (id) => {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-            const nav = document.getElementById('main-nav');
-            id === 'auth-page' ? nav.classList.add('hidden') : nav.classList.remove('hidden');
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(p => p.classList.remove('active'));
+            const target = document.getElementById(id);
+            if(target) target.classList.add('active');
         };
 
         window.sendOTP = async () => {
@@ -138,7 +155,6 @@
             const container = document.getElementById('input-container');
             const error = document.getElementById('error-msg');
 
-            // 1. Validate if it's a number
             if (!isNaN(input) && input !== "") {
                 const isNumValid = /^[6-9]\d{9}$/.test(input);
                 if (!isNumValid) {
@@ -152,15 +168,14 @@
             error.classList.add('hidden');
             currentOTP = Math.floor(100000 + Math.random() * 900000);
 
-            // 2. If it's an email, send real OTP via EmailJS
             if (input.includes('@')) {
                 try {
                     await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
                         to_email: input,
                         otp_code: currentOTP
                     });
-                    alert("OTP sent to your email!");
-                } catch (err) { alert("Email failed. Check console."); console.log(err); }
+                    alert("OTP sent!");
+                } catch (err) { alert("Email error. Verify your EmailJS settings."); }
             } else {
                 alert("DEBUG: Mobile OTP is " + currentOTP);
             }
@@ -172,39 +187,27 @@
         window.verifyOTP = () => {
             if (document.getElementById('otp-val').value == currentOTP) {
                 localStorage.setItem('rx_logged', 'true');
-                init();
+                init(); // Trigger removal of auth section
             } else { alert("Wrong OTP!"); }
         };
 
         window.loginWithGoogle = async () => {
             try {
-                const res = await signInWithPopup(auth, provider);
+                await signInWithPopup(auth, provider);
                 localStorage.setItem('rx_logged', 'true');
                 init();
             } catch (e) { alert("Google Login Error"); }
         };
 
-        window.forgotPassword = async () => {
-            const email = document.getElementById('login-id').value;
-            if(!email.includes('@')) return alert("Enter registered email first.");
-            try {
-                await sendPasswordResetEmail(auth, email);
-                alert("Reset link sent to your email!");
-            } catch (e) { alert("Error sending reset link."); }
+        window.logout = () => { 
+            localStorage.removeItem('rx_logged'); 
+            location.reload(); 
         };
-
-        window.downloadQR = () => {
-            const link = document.createElement('a');
-            link.href = document.getElementById('qr-image').src;
-            link.download = 'RX-Cart-Payment.png';
-            link.click();
-        };
-
-        window.logout = () => { localStorage.removeItem('rx_logged'); location.reload(); };
 
         const loadData = async () => {
             const snap = await getDocs(collection(db, "products"));
             const grid = document.getElementById('product-grid');
+            if(!grid) return;
             grid.innerHTML = "";
             snap.forEach(doc => {
                 const p = doc.data();
@@ -226,12 +229,8 @@
             showPage('track-page');
         };
 
-        const init = () => {
-            if(localStorage.getItem('rx_logged')) { showPage('home-page'); loadData(); }
-            else { showPage('auth-page'); }
-        };
-
-        init();
+        // Run as soon as everything loads
+        window.onload = init;
     </script>
 </body>
 </html>
