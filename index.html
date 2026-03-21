@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RX Cart | Premium India</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+        body { font-family: 'Roboto', sans-serif; background: #f1f3f6; }
+        .fk-blue { background: #2874f0; }
+        .fk-orange { background: #fb641b; }
+        .page { display: none; min-height: 100vh; }
+        .page.active { display: block; }
+        .error-shake { animation: shake 0.4s; border-bottom: 2px solid #ff0000 !important; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+    </style>
+</head>
+<body>
+
+    <header id="main-nav" class="fk-blue sticky top-0 z-50 px-4 py-2 hidden">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <h1 onclick="showPage('home-page')" class="text-white font-bold italic text-xl cursor-pointer">RX<span class="text-yellow-400">Cart</span></h1>
+            <div class="flex items-center gap-4 text-white font-bold text-sm">
+                <button onclick="showPage('track-page')">Orders</button>
+                <button onclick="logout()" class="bg-blue-700 px-3 py-1 rounded">Logout</button>
+            </div>
+        </div>
+    </header>
+
+    <div id="auth-page" class="page active flex items-center justify-center bg-slate-200 p-4">
+        <div class="bg-white w-full max-w-4xl flex rounded-sm overflow-hidden shadow-2xl min-h-[500px]">
+            <div class="fk-blue w-2/5 p-10 flex flex-col justify-between hidden md:flex text-white">
+                <div><h2 class="text-3xl font-bold">Login</h2><p class="mt-4 text-blue-100">Get access to your Orders, Wishlist and Recommendations</p></div>
+                <img src="https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/login_img_c4a81e.png">
+            </div>
+            <div class="w-full md:w-3/5 p-10 flex flex-col justify-center">
+                <div id="login-section">
+                    <div id="input-container" class="border-b border-slate-300 mb-2">
+                        <label class="text-xs text-slate-400">Mobile Number or Email</label>
+                        <input type="text" id="login-id" placeholder="Enter details" class="w-full py-2 outline-none text-lg">
+                    </div>
+                    <p id="error-msg" class="text-red-600 text-[11px] font-bold mb-6 hidden">The number is invalid please enter correct number</p>
+                    <button onclick="sendOTP()" class="fk-orange w-full text-white py-3 font-bold rounded-sm shadow-md uppercase mb-4">Request OTP</button>
+                    
+                    <div class="flex flex-col gap-3 mt-4 text-center">
+                        <button onclick="forgotPassword()" class="text-blue-600 text-xs font-bold">Forgot Password?</button>
+                        <div class="flex items-center gap-2"><hr class="flex-1"><span class="text-slate-400 text-xs">OR</span><hr class="flex-1"></div>
+                        <button onclick="loginWithGoogle()" class="flex items-center justify-center gap-3 border py-3 rounded-sm hover:bg-slate-50 transition font-medium text-sm">
+                            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5"> Continue with Google
+                        </button>
+                    </div>
+                </div>
+                <div id="otp-section" class="hidden text-center">
+                    <p class="text-sm mb-4">Enter 6-digit code sent to your inbox/phone</p>
+                    <input type="number" id="otp-val" class="w-full border-b-2 border-blue-600 py-2 outline-none text-2xl text-center tracking-widest mb-6">
+                    <button onclick="verifyOTP()" class="fk-blue w-full text-white py-3 font-bold rounded-sm uppercase">Verify</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="home-page" class="page p-4 max-w-7xl mx-auto">
+        <div class="bg-white p-4 shadow-sm">
+            <h3 class="font-bold mb-4 uppercase text-slate-400 text-xs">Recommended for You</h3>
+            <div id="product-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
+        </div>
+    </div>
+
+    <div id="checkout-page" class="page max-w-4xl mx-auto p-4 mt-10">
+        <div class="bg-white p-8 shadow-2xl flex flex-col md:flex-row gap-10">
+            <div class="flex-1 text-center">
+                <h3 class="font-bold text-blue-600 mb-4">SCAN & PAY</h3>
+                <img id="qr-image" src="1000009620.png" class="w-64 h-64 mx-auto object-contain border rounded-lg" onerror="this.src='https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=RX-PAY'">
+                <button onclick="downloadQR()" class="text-blue-600 text-xs font-bold underline mt-4 block mx-auto"><i class="fa-solid fa-download"></i> Download QR</button>
+                <p class="text-2xl font-black mt-4">₹<span id="pay-amt">0</span></p>
+            </div>
+            <div class="flex-1 space-y-4">
+                <h4 class="font-bold border-b pb-2">Confirm Payment</h4>
+                <input type="file" id="screenshot" class="w-full border p-2 text-sm">
+                <button onclick="finishOrder()" class="fk-orange w-full text-white py-4 font-bold rounded-sm uppercase">Confirm Order</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="track-page" class="page max-w-xl mx-auto p-4 mt-10">
+        <div class="bg-white p-8 shadow-sm">
+            <div class="flex gap-4 mb-8">
+                <img id="t-img" class="w-20 h-20 object-contain border">
+                <div><p id="t-name" class="font-bold"></p><p class="text-xs text-green-600 font-bold italic">Arriving in 5 Days</p></div>
+            </div>
+            <div class="border-l-2 border-blue-600 ml-4 pl-6 space-y-10 relative">
+                <div class="flex items-center"><div class="absolute -left-[9px] w-4 h-4 bg-blue-600 rounded-full"></div><p class="text-sm font-bold">Payment Verified</p></div>
+                <div class="flex items-center opacity-20"><div class="absolute -left-[9px] w-4 h-4 bg-slate-300 rounded-full"></div><p class="text-sm">Shipped</p></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAJhsLPA8SEgar8F4tWk641FiEk9q9dwGw",
+            authDomain: "rxcart-1fdbd.firebaseapp.com",
+            projectId: "rxcart-1fdbd",
+            storageBucket: "rxcart-1fdbd.firebasestorage.app",
+            appId: "1:828440432642:web:57ccba1ba4fa6f07c9971b"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
+        
+        // --- EMAILJS CONFIG (REPLACE THESE) ---
+        const EMAILJS_PUBLIC_KEY = "bydPPU0R7fdupNliP"; 
+        const EMAILJS_SERVICE_ID = "service_35ocgj5";
+        const EMAILJS_TEMPLATE_ID = "template_nzvv5lm";
+
+        emailjs.init(EMAILJS_PUBLIC_KEY);
+
+        let currentOTP = null;
+        let activeItem = null;
+
+        window.showPage = (id) => {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            const nav = document.getElementById('main-nav');
+            id === 'auth-page' ? nav.classList.add('hidden') : nav.classList.remove('hidden');
+        };
+
+        window.sendOTP = async () => {
+            const input = document.getElementById('login-id').value;
+            const container = document.getElementById('input-container');
+            const error = document.getElementById('error-msg');
+
+            // 1. Validate if it's a number
+            if (!isNaN(input) && input !== "") {
+                const isNumValid = /^[6-9]\d{9}$/.test(input);
+                if (!isNumValid) {
+                    container.classList.add('error-shake');
+                    error.classList.remove('hidden');
+                    setTimeout(() => container.classList.remove('error-shake'), 400);
+                    return;
+                }
+            }
+
+            error.classList.add('hidden');
+            currentOTP = Math.floor(100000 + Math.random() * 900000);
+
+            // 2. If it's an email, send real OTP via EmailJS
+            if (input.includes('@')) {
+                try {
+                    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+                        to_email: input,
+                        otp_code: currentOTP
+                    });
+                    alert("OTP sent to your email!");
+                } catch (err) { alert("Email failed. Check console."); console.log(err); }
+            } else {
+                alert("DEBUG: Mobile OTP is " + currentOTP);
+            }
+
+            document.getElementById('login-section').classList.add('hidden');
+            document.getElementById('otp-section').classList.remove('hidden');
+        };
+
+        window.verifyOTP = () => {
+            if (document.getElementById('otp-val').value == currentOTP) {
+                localStorage.setItem('rx_logged', 'true');
+                init();
+            } else { alert("Wrong OTP!"); }
+        };
+
+        window.loginWithGoogle = async () => {
+            try {
+                const res = await signInWithPopup(auth, provider);
+                localStorage.setItem('rx_logged', 'true');
+                init();
+            } catch (e) { alert("Google Login Error"); }
+        };
+
+        window.forgotPassword = async () => {
+            const email = document.getElementById('login-id').value;
+            if(!email.includes('@')) return alert("Enter registered email first.");
+            try {
+                await sendPasswordResetEmail(auth, email);
+                alert("Reset link sent to your email!");
+            } catch (e) { alert("Error sending reset link."); }
+        };
+
+        window.downloadQR = () => {
+            const link = document.createElement('a');
+            link.href = document.getElementById('qr-image').src;
+            link.download = 'RX-Cart-Payment.png';
+            link.click();
+        };
+
+        window.logout = () => { localStorage.removeItem('rx_logged'); location.reload(); };
+
+        const loadData = async () => {
+            const snap = await getDocs(collection(db, "products"));
+            const grid = document.getElementById('product-grid');
+            grid.innerHTML = "";
+            snap.forEach(doc => {
+                const p = doc.data();
+                grid.innerHTML += `
+                    <div onclick="buy('${p.name}','${p.price}','${p.img}')" class="bg-white border p-2 cursor-pointer hover:shadow-md text-center">
+                        <img src="${p.img}" class="h-32 w-full object-contain mb-2">
+                        <p class="text-[11px] font-bold line-clamp-1">${p.name}</p>
+                        <p class="font-bold text-sm text-blue-600">₹${p.price}</p>
+                    </div>
+                `;
+            });
+        };
+
+        window.buy = (n, p, i) => { activeItem = { n, p, i }; document.getElementById('pay-amt').innerText = p; showPage('checkout-page'); };
+        window.finishOrder = () => {
+            if(!document.getElementById('screenshot').files[0]) return alert("Screenshot required");
+            document.getElementById('t-img').src = activeItem.i;
+            document.getElementById('t-name').innerText = activeItem.n;
+            showPage('track-page');
+        };
+
+        const init = () => {
+            if(localStorage.getItem('rx_logged')) { showPage('home-page'); loadData(); }
+            else { showPage('auth-page'); }
+        };
+
+        init();
+    </script>
+</body>
+</html>
