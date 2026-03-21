@@ -30,7 +30,7 @@
         </div>
     </header>
 
-    <div id="auth-page" class="page active flex items-center justify-center bg-slate-200 p-4">
+    <div id="auth-page" class="page flex items-center justify-center bg-slate-200 p-4">
         <div class="bg-white w-full max-w-4xl flex rounded-sm overflow-hidden shadow-2xl min-h-[500px]">
             <div class="fk-blue w-2/5 p-10 flex flex-col justify-between hidden md:flex text-white">
                 <div><h2 class="text-3xl font-bold">Login</h2><p class="mt-4 text-blue-100">Get access to your Orders and Recommendations</p></div>
@@ -77,8 +77,7 @@
     </div>
 
     <div id="track-page" class="page max-w-xl mx-auto p-4 mt-10">
-        <div id="order-status-container" class="bg-white p-8 shadow-sm">
-             </div>
+        <div id="order-status-container" class="bg-white p-8 shadow-sm"></div>
     </div>
 
     <script type="module">
@@ -99,56 +98,63 @@
         const auth = getAuth(app);
 
         let activeItem = null;
+        let currentOTP = null;
 
-        // --- 1. DYNAMIC QR SYNC ---
-        onSnapshot(doc(db, "settings", "payment"), (docSnap) => {
-            if (docSnap.exists()) {
-                document.getElementById('qr-image').src = docSnap.data().qr_url;
-            }
-        });
-
-        // --- 2. FIXED DOWNLOAD QR ---
-        window.downloadQR = async () => {
-            const qrImg = document.getElementById('qr-image');
-            if (!qrImg.src) return alert("QR not loaded");
-            try {
-                const response = await fetch(qrImg.src);
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'RX-Payment-QR.png';
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-            } catch (e) {
-                window.open(qrImg.src, '_blank'); // Fallback: open in new tab
-            }
-        };
-
-        // --- 3. FINISH ORDER & TRACKING ---
-        window.finishOrder = async () => {
-            const link = document.getElementById('screenshot-link').value;
-            if(!link) return alert("Paste screenshot link");
-            
-            const btn = document.getElementById('finish-btn');
-            btn.disabled = true; btn.innerText = "Processing...";
-
-            try {
-                await addDoc(collection(db, "orders"), {
-                    name: activeItem.n,
-                    price: activeItem.p,
-                    img: activeItem.i,
-                    screenshot: link,
-                    status: 'pending',
-                    timestamp: Date.now()
-                });
-                showPage('track-page');
+        // --- AUTH CHECKER ---
+        const init = () => {
+            const isLogged = localStorage.getItem('rx_logged');
+            if (isLogged === 'true') {
+                showPage('home-page');
+                loadData();
                 syncTracking();
-            } catch (e) { alert("Error placing order"); }
-            btn.disabled = false; btn.innerText = "Confirm Order";
+            } else {
+                showPage('auth-page');
+            }
         };
 
+        window.showPage = (id) => {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            const target = document.getElementById(id);
+            if(target) target.classList.add('active');
+            
+            const nav = document.getElementById('main-nav');
+            id === 'auth-page' ? nav.classList.add('hidden') : nav.classList.remove('hidden');
+        };
+
+        // --- OTP LOGIC ---
+        window.sendOTP = () => {
+            currentOTP = Math.floor(100000 + Math.random() * 900000);
+            alert("Your OTP is: " + currentOTP); // Temporary for testing
+            document.getElementById('login-section').classList.add('hidden');
+            document.getElementById('otp-section').classList.remove('hidden');
+        };
+
+        window.verifyOTP = () => {
+            if(document.getElementById('otp-val').value == currentOTP) {
+                localStorage.setItem('rx_logged', 'true');
+                location.reload(); // Force refresh to trigger clean init()
+            } else { alert("Wrong OTP!"); }
+        };
+
+        window.logout = () => { localStorage.removeItem('rx_logged'); location.reload(); };
+
+        // --- PRODUCT SYNC ---
+        const loadData = async () => {
+            const snap = await getDocs(collection(db, "products"));
+            const grid = document.getElementById('product-grid');
+            grid.innerHTML = "";
+            snap.forEach(doc => {
+                const p = doc.data();
+                grid.innerHTML += `
+                    <div onclick="buy('${p.name}','${p.price}','${p.img}')" class="bg-white border p-2 cursor-pointer hover:shadow-md text-center">
+                        <img src="${p.img}" class="h-32 w-full object-contain mb-2">
+                        <p class="text-[11px] font-bold line-clamp-1">${p.name}</p>
+                        <p class="font-bold text-sm text-blue-600">₹${p.price}</p>
+                    </div>`;
+            });
+        };
+
+        // --- TRACKING SYNC ---
         const syncTracking = () => {
             const q = query(collection(db, "orders"), orderBy("timestamp", "desc"), limit(1));
             onSnapshot(q, (snap) => {
@@ -171,38 +177,23 @@
             });
         };
 
-        // --- AUTH & DATA LOAD ---
-        window.showPage = (id) => {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-            const nav = document.getElementById('main-nav');
-            id === 'auth-page' ? nav.classList.add('hidden') : nav.classList.remove('hidden');
-        };
-
-        window.logout = () => { localStorage.removeItem('rx_logged'); location.reload(); };
-
-        const loadData = async () => {
-            const snap = await getDocs(collection(db, "products"));
-            const grid = document.getElementById('product-grid');
-            grid.innerHTML = "";
-            snap.forEach(doc => {
-                const p = doc.data();
-                grid.innerHTML += `
-                    <div onclick="buy('${p.name}','${p.price}','${p.img}')" class="bg-white border p-2 cursor-pointer hover:shadow-md text-center">
-                        <img src="${p.img}" class="h-32 w-full object-contain mb-2">
-                        <p class="text-[11px] font-bold line-clamp-1">${p.name}</p>
-                        <p class="font-bold text-sm text-blue-600">₹${p.price}</p>
-                    </div>`;
-            });
-        };
+        // --- QR SYNC ---
+        onSnapshot(doc(db, "settings", "payment"), (docSnap) => {
+            if (docSnap.exists()) document.getElementById('qr-image').src = docSnap.data().qr_url;
+        });
 
         window.buy = (n, p, i) => { activeItem = { n, p, i }; document.getElementById('pay-amt').innerText = p; showPage('checkout-page'); };
-
-        window.onload = () => {
-            if(localStorage.getItem('rx_logged')) { showPage('home-page'); loadData(); syncTracking(); }
+        
+        window.finishOrder = async () => {
+            const link = document.getElementById('screenshot-link').value;
+            if(!link) return alert("Paste screenshot link");
+            await addDoc(collection(db, "orders"), { name: activeItem.n, price: activeItem.p, img: activeItem.i, screenshot: link, status: 'pending', timestamp: Date.now() });
+            showPage('track-page');
+            syncTracking();
         };
 
-        // ... (Keep your original verifyOTP/sendOTP logic)
+        // Start everything
+        window.onload = init;
     </script>
 </body>
 </html>
