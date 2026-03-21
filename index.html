@@ -100,14 +100,24 @@
         let activeItem = null;
         let currentOTP = null;
 
-        // --- AUTH CHECKER ---
+        // --- AUTH CHECKER & INITIALIZATION ---
         const init = () => {
             const isLogged = localStorage.getItem('rx_logged');
+            const authPage = document.getElementById('auth-page');
+            const mainNav = document.getElementById('main-nav');
+
+            // Hide all pages initially
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+
             if (isLogged === 'true') {
+                authPage.style.display = 'none'; 
+                mainNav.classList.remove('hidden');
                 showPage('home-page');
                 loadData();
                 syncTracking();
             } else {
+                mainNav.classList.add('hidden');
+                authPage.style.display = 'flex'; 
                 showPage('auth-page');
             }
         };
@@ -118,10 +128,14 @@
             if(target) target.classList.add('active');
             
             const nav = document.getElementById('main-nav');
-            id === 'auth-page' ? nav.classList.add('hidden') : nav.classList.remove('hidden');
+            if (id === 'auth-page') {
+                nav.classList.add('hidden');
+            } else {
+                nav.classList.remove('hidden');
+            }
         };
 
-        // --- OTP LOGIC ---
+        // --- OTP & AUTH LOGIC ---
         window.sendOTP = () => {
             currentOTP = Math.floor(100000 + Math.random() * 900000);
             alert("Your OTP is: " + currentOTP); // Temporary for testing
@@ -130,18 +144,25 @@
         };
 
         window.verifyOTP = () => {
-            if(document.getElementById('otp-val').value == currentOTP) {
+            const enteredOTP = document.getElementById('otp-val').value;
+            if (enteredOTP == currentOTP && currentOTP !== null) {
                 localStorage.setItem('rx_logged', 'true');
-                location.reload(); // Force refresh to trigger clean init()
-            } else { alert("Wrong OTP!"); }
+                location.reload(); 
+            } else {
+                alert("Wrong OTP!");
+            }
         };
 
-        window.logout = () => { localStorage.removeItem('rx_logged'); location.reload(); };
+        window.logout = () => { 
+            localStorage.removeItem('rx_logged'); 
+            location.reload(); 
+        };
 
-        // --- PRODUCT SYNC ---
+        // --- CORE FUNCTIONALITY ---
         const loadData = async () => {
             const snap = await getDocs(collection(db, "products"));
             const grid = document.getElementById('product-grid');
+            if(!grid) return;
             grid.innerHTML = "";
             snap.forEach(doc => {
                 const p = doc.data();
@@ -154,7 +175,6 @@
             });
         };
 
-        // --- TRACKING SYNC ---
         const syncTracking = () => {
             const q = query(collection(db, "orders"), orderBy("timestamp", "desc"), limit(1));
             onSnapshot(q, (snap) => {
@@ -164,23 +184,43 @@
                     const sColor = s === 'verified' ? 'bg-green-600' : (s === 'rejected' ? 'bg-red-600' : 'bg-yellow-500');
                     const sText = s === 'verified' ? 'Payment Verified' : (s === 'rejected' ? 'Payment Rejected' : 'Verification Pending');
 
-                    document.getElementById('order-status-container').innerHTML = `
-                        <div class="flex gap-4 mb-8">
-                            <img src="${o.img}" class="w-20 h-20 object-contain border">
-                            <div><p class="font-bold">${o.name}</p><p class="text-xs text-blue-600 font-bold">Order ID: ${d.id.slice(-5)}</p></div>
-                        </div>
-                        <div class="border-l-2 border-slate-200 ml-4 pl-6 space-y-10 relative">
-                            <div class="flex items-center"><div class="absolute -left-[9px] w-4 h-4 ${sColor} rounded-full border-2 border-white"></div><p class="text-sm font-bold">${sText}</p></div>
-                            <div class="flex items-center opacity-20"><div class="absolute -left-[9px] w-4 h-4 bg-slate-300 rounded-full"></div><p class="text-sm">Shipped</p></div>
-                        </div>`;
+                    const container = document.getElementById('order-status-container');
+                    if(container) {
+                        container.innerHTML = `
+                            <div class="flex gap-4 mb-8">
+                                <img src="${o.img}" class="w-20 h-20 object-contain border">
+                                <div><p class="font-bold">${o.name}</p><p class="text-xs text-blue-600 font-bold">Order ID: ${d.id.slice(-5)}</p></div>
+                            </div>
+                            <div class="border-l-2 border-slate-200 ml-4 pl-6 space-y-10 relative">
+                                <div class="flex items-center"><div class="absolute -left-[9px] w-4 h-4 ${sColor} rounded-full border-2 border-white"></div><p class="text-sm font-bold">${sText}</p></div>
+                                <div class="flex items-center opacity-20"><div class="absolute -left-[9px] w-4 h-4 bg-slate-300 rounded-full"></div><p class="text-sm">Shipped</p></div>
+                            </div>`;
+                    }
                 });
             });
         };
 
-        // --- QR SYNC ---
         onSnapshot(doc(db, "settings", "payment"), (docSnap) => {
             if (docSnap.exists()) document.getElementById('qr-image').src = docSnap.data().qr_url;
         });
+
+        window.downloadQR = async () => {
+            const qrImg = document.getElementById('qr-image');
+            if (!qrImg || !qrImg.src) return alert("QR not loaded");
+            try {
+                const response = await fetch(qrImg.src);
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'RX-Payment-QR.png';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            } catch (e) {
+                window.open(qrImg.src, '_blank');
+            }
+        };
 
         window.buy = (n, p, i) => { activeItem = { n, p, i }; document.getElementById('pay-amt').innerText = p; showPage('checkout-page'); };
         
@@ -192,7 +232,6 @@
             syncTracking();
         };
 
-        // Start everything
         window.onload = init;
     </script>
 </body>
