@@ -33,7 +33,7 @@
     <div id="auth-page" class="page active flex items-center justify-center bg-slate-200 p-4">
         <div class="bg-white w-full max-w-4xl flex rounded-sm overflow-hidden shadow-2xl min-h-[500px]">
             <div class="fk-blue w-2/5 p-10 flex flex-col justify-between hidden md:flex text-white">
-                <div><h2 class="text-3xl font-bold">Login</h2><p class="mt-4 text-blue-100">Get access to your Orders, Wishlist and Recommendations</p></div>
+                <div><h2 class="text-3xl font-bold">Login</h2><p class="mt-4 text-blue-100">Get access to your Orders and Recommendations</p></div>
                 <img src="https://static-assets-web.flixcart.com/fk-p-linchpin-web/fk-cp-zion/img/login_img_c4a81e.png">
             </div>
             <div class="w-full md:w-3/5 p-10 flex flex-col justify-center">
@@ -42,20 +42,11 @@
                         <label class="text-xs text-slate-400">Mobile Number or Email</label>
                         <input type="text" id="login-id" placeholder="Enter details" class="w-full py-2 outline-none text-lg">
                     </div>
-                    <p id="error-msg" class="text-red-600 text-[11px] font-bold mb-6 hidden">The number is invalid please enter correct number</p>
+                    <p id="error-msg" class="text-red-600 text-[11px] font-bold mb-6 hidden">Invalid details</p>
                     <button onclick="sendOTP()" class="fk-orange w-full text-white py-3 font-bold rounded-sm shadow-md uppercase mb-4">Request OTP</button>
-                    
-                    <div class="flex flex-col gap-3 mt-4 text-center">
-                        <button onclick="forgotPassword()" class="text-blue-600 text-xs font-bold">Forgot Password?</button>
-                        <div class="flex items-center gap-2"><hr class="flex-1"><span class="text-slate-400 text-xs">OR</span><hr class="flex-1"></div>
-                        <button onclick="loginWithGoogle()" class="flex items-center justify-center gap-3 border py-3 rounded-sm hover:bg-slate-50 transition font-medium text-sm">
-                            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5"> Continue with Google
-                        </button>
-                    </div>
                 </div>
                 <div id="otp-section" class="hidden text-center">
-                    <p class="text-sm mb-4">Enter 6-digit code sent to your inbox/phone</p>
-                    <input type="number" id="otp-val" class="w-full border-b-2 border-blue-600 py-2 outline-none text-2xl text-center tracking-widest mb-6">
+                    <input type="number" id="otp-val" class="w-full border-b-2 border-blue-600 py-2 outline-none text-2xl text-center tracking-widest mb-6" placeholder="000000">
                     <button onclick="verifyOTP()" class="fk-blue w-full text-white py-3 font-bold rounded-sm uppercase">Verify</button>
                 </div>
             </div>
@@ -73,35 +64,27 @@
         <div class="bg-white p-8 shadow-2xl flex flex-col md:flex-row gap-10">
             <div class="flex-1 text-center">
                 <h3 class="font-bold text-blue-600 mb-4">SCAN & PAY</h3>
-                <img id="qr-image" src="1000009620.png" class="w-64 h-64 mx-auto object-contain border rounded-lg" onerror="this.src='https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=RX-PAY'">
+                <img id="qr-image" src="" class="w-64 h-64 mx-auto object-contain border rounded-lg" onerror="this.src='https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=RX-PAY'">
                 <button onclick="downloadQR()" class="text-blue-600 text-xs font-bold underline mt-4 block mx-auto"><i class="fa-solid fa-download"></i> Download QR</button>
                 <p class="text-2xl font-black mt-4">₹<span id="pay-amt">0</span></p>
             </div>
             <div class="flex-1 space-y-4">
                 <h4 class="font-bold border-b pb-2">Confirm Payment</h4>
-                <input type="file" id="screenshot" class="w-full border p-2 text-sm">
-                <button onclick="finishOrder()" class="fk-orange w-full text-white py-4 font-bold rounded-sm uppercase">Confirm Order</button>
+                <input type="text" id="screenshot-link" placeholder="Paste Screenshot Link (Imgur/PostImages)" class="w-full border p-2 text-sm outline-none">
+                <button id="finish-btn" onclick="finishOrder()" class="fk-orange w-full text-white py-4 font-bold rounded-sm uppercase">Confirm Order</button>
             </div>
         </div>
     </div>
 
     <div id="track-page" class="page max-w-xl mx-auto p-4 mt-10">
-        <div class="bg-white p-8 shadow-sm">
-            <div class="flex gap-4 mb-8">
-                <img id="t-img" class="w-20 h-20 object-contain border">
-                <div><p id="t-name" class="font-bold"></p><p class="text-xs text-green-600 font-bold italic">Arriving in 5 Days</p></div>
-            </div>
-            <div class="border-l-2 border-blue-600 ml-4 pl-6 space-y-10 relative">
-                <div class="flex items-center"><div class="absolute -left-[9px] w-4 h-4 bg-blue-600 rounded-full"></div><p class="text-sm font-bold">Payment Verified</p></div>
-                <div class="flex items-center opacity-20"><div class="absolute -left-[9px] w-4 h-4 bg-slate-300 rounded-full"></div><p class="text-sm">Shipped</p></div>
-            </div>
-        </div>
+        <div id="order-status-container" class="bg-white p-8 shadow-sm">
+             </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAJhsLPA8SEgar8F4tWk641FiEk9q9dwGw",
@@ -114,100 +97,93 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
-        const provider = new GoogleAuthProvider();
-        
-        const EMAILJS_PUBLIC_KEY = "bydPPU0R7fdupNliP"; 
-        const EMAILJS_SERVICE_ID = "service_35ocgj5";
-        const EMAILJS_TEMPLATE_ID = "template_nzvv5lm";
 
-        emailjs.init(EMAILJS_PUBLIC_KEY);
-
-        let currentOTP = null;
         let activeItem = null;
 
-        // --- NEW INITIALIZATION LOGIC ---
-        const init = () => {
-            const isLogged = localStorage.getItem('rx_logged');
-            const authPage = document.getElementById('auth-page');
-            const mainNav = document.getElementById('main-nav');
-
-            if (isLogged === 'true') {
-                // PHYSICALLY DELETE the auth section
-                if (authPage) authPage.remove(); 
-                
-                mainNav.classList.remove('hidden');
-                showPage('home-page');
-                loadData();
-            } else {
-                showPage('auth-page');
+        // --- 1. DYNAMIC QR SYNC ---
+        onSnapshot(doc(db, "settings", "payment"), (docSnap) => {
+            if (docSnap.exists()) {
+                document.getElementById('qr-image').src = docSnap.data().qr_url;
             }
-        };
+        });
 
-        window.showPage = (id) => {
-            const pages = document.querySelectorAll('.page');
-            pages.forEach(p => p.classList.remove('active'));
-            const target = document.getElementById(id);
-            if(target) target.classList.add('active');
-        };
-
-        window.sendOTP = async () => {
-            const input = document.getElementById('login-id').value;
-            const container = document.getElementById('input-container');
-            const error = document.getElementById('error-msg');
-
-            if (!isNaN(input) && input !== "") {
-                const isNumValid = /^[6-9]\d{9}$/.test(input);
-                if (!isNumValid) {
-                    container.classList.add('error-shake');
-                    error.classList.remove('hidden');
-                    setTimeout(() => container.classList.remove('error-shake'), 400);
-                    return;
-                }
-            }
-
-            error.classList.add('hidden');
-            currentOTP = Math.floor(100000 + Math.random() * 900000);
-
-            if (input.includes('@')) {
-                try {
-                    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-                        to_email: input,
-                        otp_code: currentOTP
-                    });
-                    alert("OTP sent!");
-                } catch (err) { alert("Email error. Verify your EmailJS settings."); }
-            } else {
-                alert("DEBUG: Mobile OTP is " + currentOTP);
-            }
-
-            document.getElementById('login-section').classList.add('hidden');
-            document.getElementById('otp-section').classList.remove('hidden');
-        };
-
-        window.verifyOTP = () => {
-            if (document.getElementById('otp-val').value == currentOTP) {
-                localStorage.setItem('rx_logged', 'true');
-                init(); // Trigger removal of auth section
-            } else { alert("Wrong OTP!"); }
-        };
-
-        window.loginWithGoogle = async () => {
+        // --- 2. FIXED DOWNLOAD QR ---
+        window.downloadQR = async () => {
+            const qrImg = document.getElementById('qr-image');
+            if (!qrImg.src) return alert("QR not loaded");
             try {
-                await signInWithPopup(auth, provider);
-                localStorage.setItem('rx_logged', 'true');
-                init();
-            } catch (e) { alert("Google Login Error"); }
+                const response = await fetch(qrImg.src);
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'RX-Payment-QR.png';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            } catch (e) {
+                window.open(qrImg.src, '_blank'); // Fallback: open in new tab
+            }
         };
 
-        window.logout = () => { 
-            localStorage.removeItem('rx_logged'); 
-            location.reload(); 
+        // --- 3. FINISH ORDER & TRACKING ---
+        window.finishOrder = async () => {
+            const link = document.getElementById('screenshot-link').value;
+            if(!link) return alert("Paste screenshot link");
+            
+            const btn = document.getElementById('finish-btn');
+            btn.disabled = true; btn.innerText = "Processing...";
+
+            try {
+                await addDoc(collection(db, "orders"), {
+                    name: activeItem.n,
+                    price: activeItem.p,
+                    img: activeItem.i,
+                    screenshot: link,
+                    status: 'pending',
+                    timestamp: Date.now()
+                });
+                showPage('track-page');
+                syncTracking();
+            } catch (e) { alert("Error placing order"); }
+            btn.disabled = false; btn.innerText = "Confirm Order";
         };
+
+        const syncTracking = () => {
+            const q = query(collection(db, "orders"), orderBy("timestamp", "desc"), limit(1));
+            onSnapshot(q, (snap) => {
+                snap.forEach(d => {
+                    const o = d.data();
+                    const s = o.status || 'pending';
+                    const sColor = s === 'verified' ? 'bg-green-600' : (s === 'rejected' ? 'bg-red-600' : 'bg-yellow-500');
+                    const sText = s === 'verified' ? 'Payment Verified' : (s === 'rejected' ? 'Payment Rejected' : 'Verification Pending');
+
+                    document.getElementById('order-status-container').innerHTML = `
+                        <div class="flex gap-4 mb-8">
+                            <img src="${o.img}" class="w-20 h-20 object-contain border">
+                            <div><p class="font-bold">${o.name}</p><p class="text-xs text-blue-600 font-bold">Order ID: ${d.id.slice(-5)}</p></div>
+                        </div>
+                        <div class="border-l-2 border-slate-200 ml-4 pl-6 space-y-10 relative">
+                            <div class="flex items-center"><div class="absolute -left-[9px] w-4 h-4 ${sColor} rounded-full border-2 border-white"></div><p class="text-sm font-bold">${sText}</p></div>
+                            <div class="flex items-center opacity-20"><div class="absolute -left-[9px] w-4 h-4 bg-slate-300 rounded-full"></div><p class="text-sm">Shipped</p></div>
+                        </div>`;
+                });
+            });
+        };
+
+        // --- AUTH & DATA LOAD ---
+        window.showPage = (id) => {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            const nav = document.getElementById('main-nav');
+            id === 'auth-page' ? nav.classList.add('hidden') : nav.classList.remove('hidden');
+        };
+
+        window.logout = () => { localStorage.removeItem('rx_logged'); location.reload(); };
 
         const loadData = async () => {
             const snap = await getDocs(collection(db, "products"));
             const grid = document.getElementById('product-grid');
-            if(!grid) return;
             grid.innerHTML = "";
             snap.forEach(doc => {
                 const p = doc.data();
@@ -216,21 +192,17 @@
                         <img src="${p.img}" class="h-32 w-full object-contain mb-2">
                         <p class="text-[11px] font-bold line-clamp-1">${p.name}</p>
                         <p class="font-bold text-sm text-blue-600">₹${p.price}</p>
-                    </div>
-                `;
+                    </div>`;
             });
         };
 
         window.buy = (n, p, i) => { activeItem = { n, p, i }; document.getElementById('pay-amt').innerText = p; showPage('checkout-page'); };
-        window.finishOrder = () => {
-            if(!document.getElementById('screenshot').files[0]) return alert("Screenshot required");
-            document.getElementById('t-img').src = activeItem.i;
-            document.getElementById('t-name').innerText = activeItem.n;
-            showPage('track-page');
+
+        window.onload = () => {
+            if(localStorage.getItem('rx_logged')) { showPage('home-page'); loadData(); syncTracking(); }
         };
 
-        // Run as soon as everything loads
-        window.onload = init;
+        // ... (Keep your original verifyOTP/sendOTP logic)
     </script>
 </body>
 </html>
